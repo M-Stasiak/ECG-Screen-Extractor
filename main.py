@@ -1,9 +1,14 @@
 from pathlib import Path
+
 import cv2
+import argparse
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 
 from utils.random_color import random_color
 from utils.baseline_detection import detect_baselines
+from utils.signal_scaling import get_ms_per_pixel, interpolate_to_1ms
 from utils.trace_extraction import show_trace, extract_trace_greedy, extract_trace_dynamic, extract_trace_dynamic_viterbi
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -12,68 +17,87 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 def empty_callback(value):
     pass
 
-def main():
-    # cv2.namedWindow('result')
-    # cv2.createTrackbar('Thresh', 'result', 60, 255, empty_callback)
-
-    img_original = cv2.imread(SCRIPT_DIR / "data" / "P3_1.jpg")
-    img = img_original.copy()
-
-    x, y, w, h = (37, 119, 1876, 921)
-    img = img[y:y+h, x:x+w]
-
-    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    _, img_thresh = cv2.threshold(img_gray, 185, 255, cv2.THRESH_BINARY)
-
-    # Wycięcie marginesu z lewej strony z nazwami kanałów
-    img_thresh[:, :35] = 0
-
-    baselines = detect_baselines(img_thresh)
+def process_image(img, ms_per_px, name=None):
+    baselines = detect_baselines(img)
     channel_names = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
 
-    display_img = img.copy()
-    for channel_name, baseline_y in zip(channel_names, baselines):
-        cv2.line(display_img, (0, baseline_y), (display_img.shape[1] - 1, baseline_y), (0, 255, 0), 1)
-        cv2.putText(display_img, channel_name, (40, baseline_y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
-
-    cv2.imshow("baselines", display_img)
-    cv2.waitKey()
-    cv2.destroyAllWindows()
-
-    # display_img_greedy = img.copy()
-    # display_img_dynamic = img.copy()
+    data = {}
     display_img_viterbi = img.copy()
     for channel_idx, channel_name in enumerate(channel_names):
-        height, width = img_thresh.shape
-
+        height, width = img.shape
         baseline_y = baselines[channel_idx]
+
         spacing = int(np.median(np.diff(baselines)))
         search_margin = int(1.5 * spacing)
 
         y_top = max(0, baseline_y - search_margin)
         y_bottom = min(height, baseline_y + search_margin)
 
-        channel_band = img_thresh[y_top:y_bottom, :]
+        channel_band = img[y_top:y_bottom, :]
         baseline_local_y = baseline_y - y_top
 
-        # trace_greedy, amplitude_greedy = extract_trace_greedy(channel_band, baseline_local_y)
-        # trace_dynamic, amplitude_dynamic = extract_trace_dynamic(channel_band, baseline_local_y)
         trace_viterbi, amplitude_viterbi = extract_trace_dynamic_viterbi(channel_band, baseline_local_y)
+        time_ms, amplitude_1ms = interpolate_to_1ms(amplitude_viterbi, ms_per_px)
 
-        # trace_greedy_global = trace_greedy + y_top
-        # trace_dynamic_global = trace_dynamic + y_top
+        if "time_ms" not in data: data["time_ms"] = time_ms
+        data[channel_name] = amplitude_1ms
         trace_viterbi_global = trace_viterbi + y_top
-
+        # trace_viterbi_global = np.pad(trace_viterbi_global, (display_img_viterbi.shape[1] - len(trace_viterbi_global), 0), constant_values=-1)
+        
         color = random_color()
-        # display_img_greedy = show_trace(display_img_greedy, trace_greedy_global, trace_color=color)
-        # display_img_dynamic = show_trace(display_img_dynamic, trace_dynamic_global, trace_color=color)
-        display_img_viterbi = show_trace(display_img_viterbi, trace_viterbi_global, trace_color=color)
+        display_img_viterbi = show_trace(display_img_viterbi, trace_viterbi_global, trace_color=color, baseline_y=baseline_y)
+    
+    if name is not None: cv2.imshow(name, display_img_viterbi)
 
-    # cv2.imshow('greedy', display_img_greedy)
-    # cv2.imshow('dynamic', display_img_dynamic)
-    cv2.imshow('viterbi', display_img_viterbi)
+    df = pd.DataFrame(data)
+    return df
+
+def main(input_dir, output_dir):
+
+    ms_per_px = get_ms_per_pixel(SCRIPT_DIR / "reference.jpg")
+
+    image_files = sorted(p for p in input_dir.iterdir() if p.is_file() and p.suffix.lower() == ".jpg")
+
+    for image_path in image_files:
+        print(f"Zdjęcie: {image_path.name}")
+
+        img_original = cv2.imread(image_path)
+        img = img_original.copy()
+
+        x, y, w, h = (37, 119, 1876, 921)
+        img = img[y:y+h, x:x+w]
+
+        img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        _, img_thresh = cv2.threshold(img_gray, 185, 255, cv2.THRESH_BINARY)
+
+        # Wycięcie marginesu z lewej strony z nazwami kanałów
+        img_thresh[:, :35] = 0
+        # img_thresh = img_thresh[:, 35:]
+
+        df = process_image(img_thresh, ms_per_px, name=image_path.name)
+
+        output_path = output_dir / f"{image_path.stem}.csv"
+        df.to_csv(output_path, index=False)
+        print(f"Zapisano: {output_path.name}")
+    
     cv2.waitKey()
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Ekstrakcja sygnałów EKG z zdjęć do plików CSV.")
+    parser.add_argument("--input_dir", required=True, type=Path, help="Ścieżka do folderu z obrazami wejściowymi.")
+    parser.add_argument("--output_dir", required=True, type=Path, help="Ścieżka do folderu, w którym zostaną zapisane pliki CSV.")
+    args = parser.parse_args()
+
+    input_dir = args.input_dir
+    output_dir = args.output_dir
+
+    # input_dir = SCRIPT_DIR / "input"
+    # output_dir = SCRIPT_DIR / "output"
+
+    if not input_dir.exists(): raise FileNotFoundError(f"Folder wejściowy nie istnieje: {input_dir}")
+    if not input_dir.is_dir(): raise NotADirectoryError(f"Podana ścieżka wejściowa nie jest folderem: {input_dir}")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    main(input_dir, output_dir)
