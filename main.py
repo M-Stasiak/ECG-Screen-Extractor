@@ -1,16 +1,13 @@
 from pathlib import Path
 import cv2
 import numpy as np
-import random
 
+from utils.random_color import random_color
 from utils.baseline_detection import detect_baselines
-from utils.trace_extraction import extract_trace_greedy, extract_trace_dynamic, show_trace
+from utils.trace_extraction import show_trace, extract_trace_greedy, extract_trace_dynamic, extract_trace_dynamic_viterbi
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
-def random_color():
-    levels = range(32,256,32)
-    return tuple(random.choice(levels) for _ in range(3))
 
 def empty_callback(value):
     pass
@@ -19,7 +16,7 @@ def main():
     # cv2.namedWindow('result')
     # cv2.createTrackbar('Thresh', 'result', 60, 255, empty_callback)
 
-    img_original = cv2.imread(SCRIPT_DIR / "data" / "P5_1.jpg")
+    img_original = cv2.imread(SCRIPT_DIR / "data" / "P3_1.jpg")
     img = img_original.copy()
 
     x, y, w, h = (37, 119, 1876, 921)
@@ -43,14 +40,15 @@ def main():
     cv2.waitKey()
     cv2.destroyAllWindows()
 
-    display_img_greedy = img.copy()
-    display_img_dynamic = img.copy()
+    # display_img_greedy = img.copy()
+    # display_img_dynamic = img.copy()
+    display_img_viterbi = img.copy()
     for channel_idx, channel_name in enumerate(channel_names):
         height, width = img_thresh.shape
 
         baseline_y = baselines[channel_idx]
         spacing = int(np.median(np.diff(baselines)))
-        search_margin = int(1.2 * spacing)
+        search_margin = int(1.5 * spacing)
 
         y_top = max(0, baseline_y - search_margin)
         y_bottom = min(height, baseline_y + search_margin)
@@ -58,20 +56,22 @@ def main():
         channel_band = img_thresh[y_top:y_bottom, :]
         baseline_local_y = baseline_y - y_top
 
-        trace_greedy, amplitude_greedy = extract_trace_greedy(channel_band, baseline_local_y)
-        trace_dynamic, amplitude_dynamic = extract_trace_dynamic(channel_band, baseline_local_y)
+        # trace_greedy, amplitude_greedy = extract_trace_greedy(channel_band, baseline_local_y)
+        # trace_dynamic, amplitude_dynamic = extract_trace_dynamic(channel_band, baseline_local_y)
+        trace_viterbi, amplitude_viterbi = extract_trace_dynamic_viterbi(channel_band, baseline_local_y)
 
-        trace_greedy_global = trace_greedy + y_top
-        trace_dynamic_global = trace_dynamic + y_top
+        # trace_greedy_global = trace_greedy + y_top
+        # trace_dynamic_global = trace_dynamic + y_top
+        trace_viterbi_global = trace_viterbi + y_top
 
         color = random_color()
-        display_img_greedy = show_trace(display_img_greedy, trace_greedy_global, trace_color=color)
-        display_img_dynamic = show_trace(display_img_dynamic, trace_dynamic_global, trace_color=color)
+        # display_img_greedy = show_trace(display_img_greedy, trace_greedy_global, trace_color=color)
+        # display_img_dynamic = show_trace(display_img_dynamic, trace_dynamic_global, trace_color=color)
+        display_img_viterbi = show_trace(display_img_viterbi, trace_viterbi_global, trace_color=color)
 
-    cv2.imshow('greedy', display_img_greedy)
-    cv2.imshow('dynamic', display_img_dynamic)
-    # cv2.imwrite('greedy.png', display_img_greedy)
-    # cv2.imwrite('dynamic.png', display_img_dynamic)
+    # cv2.imshow('greedy', display_img_greedy)
+    # cv2.imshow('dynamic', display_img_dynamic)
+    cv2.imshow('viterbi', display_img_viterbi)
     cv2.waitKey()
 
 
