@@ -57,6 +57,7 @@ def process_image(img, ms_per_px, name=None):
 def main(input_dir, output_dir, reference_image_path):
 
     ms_per_px = get_ms_per_pixel(reference_image_path)
+    print(ms_per_px)
 
     image_files = sorted(p for p in input_dir.iterdir() if p.is_file() and p.suffix.lower() == ".jpg")
 
@@ -78,8 +79,8 @@ def main(input_dir, output_dir, reference_image_path):
 
         df = process_image(img_thresh, ms_per_px, name=image_path.name)
 
-        bpm_result = estimate_bpm_from_dataframe(df)
-        if bpm_result is not None: print(f"BPM: {bpm_result['bpm']:.1f} (kanał {bpm_result['channel']}, liczba R: {len(bpm_result['r_peaks'])})")
+        bpm = estimate_bpm_from_dataframe(df)
+        if bpm is not None: print(f"BPM: {bpm:.1f}")
         else: print("BPM: nie udało się wyznaczyć")
 
         output_path = output_dir / f"{image_path.stem}.csv"

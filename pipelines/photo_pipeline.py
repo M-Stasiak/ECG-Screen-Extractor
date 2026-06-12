@@ -105,8 +105,8 @@ def main(input_dir, output_dir, paper_speed_mm_s=25):
         ms_per_px = get_ms_per_pixel_from_grid(img, paper_speed_mm_s=paper_speed_mm_s)
         df = process_image(signal_mask, ms_per_px, bands, name=image_path.name)
 
-        bpm_result = estimate_bpm_from_dataframe(df)
-        if bpm_result is not None: print(f"BPM: {bpm_result['bpm']:.1f} (kanał {bpm_result['channel']}, liczba R: {len(bpm_result['r_peaks'])})")
+        bpm = estimate_bpm_from_dataframe(df)
+        if bpm is not None: print(f"BPM: {bpm:.1f}")
         else: print("BPM: nie udało się wyznaczyć")
 
         output_path = output_dir / f"{image_path.stem}.csv"

@@ -63,7 +63,7 @@ def estimate_bpm_from_dataframe(df, preferred_channels=None):
 
     time_ms = df["time_ms"].to_numpy(dtype=np.float32)
 
-    best_result = None
+    results = []
     for channel_name in preferred_channels:
         if channel_name not in df.columns: continue
 
@@ -74,14 +74,30 @@ def estimate_bpm_from_dataframe(df, preferred_channels=None):
 
         if bpm is None: continue
 
-        rr_count = len(r_peaks) - 1
+        results.append({
+            "channel": channel_name,
+            "bpm": float(bpm),
+            "r_peaks": r_peaks,
+            "r_count": len(r_peaks),
+            "rr_count": len(r_peaks) - 1
+        })
+    
+    if len(results) == 0: return None
 
-        if best_result is None or rr_count > best_result["rr_count"]:
-            best_result = {
-                "bpm": bpm,
-                "channel": channel_name,
-                "r_peaks": r_peaks,
-                "rr_count": rr_count
-            }
+    bpm_values = np.array([r["bpm"] for r in results], dtype=np.float32)
+    median_bpm = np.median(bpm_values)
 
-    return best_result
+    filtered_results = [r for r in results if abs(r["bpm"] - median_bpm) <= 0.20 * median_bpm]
+    if len(filtered_results) == 0: filtered_results = results
+
+    weights = np.array([max(1, r["rr_count"]) for r in filtered_results], dtype=np.float32)
+    filtered_bpm = np.array([r["bpm"] for r in filtered_results], dtype=np.float32)
+    final_bpm = np.average(filtered_bpm, weights=weights)
+
+    # print("BPM z kanałów:")
+    # used_channel_names = {r["channel"] for r in filtered_results}
+    # for r in results:
+    #     status = "użyty" if r["channel"] in used_channel_names else "odrzucony"
+    #     print(f"{r['channel']}: {r['bpm']:.1f} BPM, R={r['r_count']}, {status}")
+
+    return final_bpm
