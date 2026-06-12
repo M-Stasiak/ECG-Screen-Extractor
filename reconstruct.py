@@ -56,11 +56,11 @@ def main(csv_dir):
         # plt.show()
 
 if __name__ == "__main__":
-    # parser = argparse.ArgumentParser(description="Wizualizacja zapisanych CSV")
-    # parser.add_argument("--input_dir", required=True, type=Path, help="Ścieżka do folderu z plikami CSV.")
-    # args = parser.parse_args()
+    parser = argparse.ArgumentParser(description="Wizualizacja zapisanych CSV")
+    parser.add_argument("--input_dir", required=True, type=Path, help="Ścieżka do folderu z plikami CSV.")
+    args = parser.parse_args()
 
-    # input_dir = args.input_dir
-    input_dir = SCRIPT_DIR / "output"
+    input_dir = args.input_dir
+    # input_dir = SCRIPT_DIR / "output"
 
     main(input_dir)

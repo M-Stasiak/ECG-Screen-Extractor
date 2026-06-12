@@ -248,7 +248,7 @@ def extract_trace_dynamic_viterbi(
     return trace_y, amplitude_px
 
 
-def show_trace(img, trace_y, baseline_y=None, baseline_color=(0, 255, 0), trace_color=(0, 0, 255)):
+def show_trace_2(img, trace_y, baseline_y=None, baseline_color=(0, 255, 0), trace_color=(0, 0, 255)):
     img = img.copy()
     if len(img.shape) == 2: img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
@@ -261,4 +261,22 @@ def show_trace(img, trace_y, baseline_y=None, baseline_color=(0, 255, 0), trace_
         if 0 <= yy < height:
             cv2.circle(img, (x, yy), 1, trace_color, -1)
     
+    return img
+
+def show_trace(img, trace_y, x_offset=0, y_offset=0, baseline_y=None, baseline_color=(0, 255, 0), trace_color=(0, 0, 255)):
+    img = img.copy()
+    if len(img.shape) == 2: img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+
+    height, width = img.shape[:2]
+    if baseline_y is not None:
+        baseline_global_y = int(round(y_offset + baseline_y))
+        cv2.line(img, (x_offset, baseline_global_y), (min(width - 1, x_offset + len(trace_y) - 1), baseline_global_y), baseline_color, 1)
+
+    for x_local in range(len(trace_y)):
+        x_global = x_offset + x_local
+        y_global = y_offset + int(round(trace_y[x_local]))
+
+        if 0 <= x_global < width and 0 <= y_global < height:
+            cv2.circle(img, (x_global, y_global), 1, trace_color, -1)
+
     return img
