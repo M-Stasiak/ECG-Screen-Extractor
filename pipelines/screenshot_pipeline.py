@@ -11,6 +11,8 @@ from utils.baseline_detection import detect_baselines
 from utils.signal_scaling import get_ms_per_pixel, interpolate_to_1ms
 from utils.trace_extraction import show_trace, extract_trace_greedy, extract_trace_dynamic, extract_trace_dynamic_viterbi
 
+from utils.bpm_detection import estimate_bpm_from_dataframe
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 
 
@@ -75,6 +77,10 @@ def main(input_dir, output_dir, reference_image_path):
         # img_thresh = img_thresh[:, 35:]
 
         df = process_image(img_thresh, ms_per_px, name=image_path.name)
+
+        bpm_result = estimate_bpm_from_dataframe(df)
+        if bpm_result is not None: print(f"BPM: {bpm_result['bpm']:.1f} (kanał {bpm_result['channel']}, liczba R: {len(bpm_result['r_peaks'])})")
+        else: print("BPM: nie udało się wyznaczyć")
 
         output_path = output_dir / f"{image_path.stem}.csv"
         df.to_csv(output_path, index=False)

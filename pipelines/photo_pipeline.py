@@ -10,6 +10,8 @@ from utils.band_detection import detect_channel_bands_dp
 from utils.signal_scaling import get_ms_per_pixel_from_grid, interpolate_to_1ms
 from utils.trace_extraction import show_trace, extract_trace_dynamic_viterbi
 
+from utils.bpm_detection import estimate_bpm_from_dataframe
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 
 def empty_callback(value):
@@ -102,6 +104,10 @@ def main(input_dir, output_dir, paper_speed_mm_s=25):
 
         ms_per_px = get_ms_per_pixel_from_grid(img, paper_speed_mm_s=paper_speed_mm_s)
         df = process_image(signal_mask, ms_per_px, bands, name=image_path.name)
+
+        bpm_result = estimate_bpm_from_dataframe(df)
+        if bpm_result is not None: print(f"BPM: {bpm_result['bpm']:.1f} (kanał {bpm_result['channel']}, liczba R: {len(bpm_result['r_peaks'])})")
+        else: print("BPM: nie udało się wyznaczyć")
 
         output_path = output_dir / f"{image_path.stem}.csv"
         df.to_csv(output_path, index=False)
