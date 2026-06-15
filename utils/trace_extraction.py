@@ -248,21 +248,6 @@ def extract_trace_dynamic_viterbi(
     return trace_y, amplitude_px
 
 
-def show_trace_2(img, trace_y, baseline_y=None, baseline_color=(0, 255, 0), trace_color=(0, 0, 255)):
-    img = img.copy()
-    if len(img.shape) == 2: img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-
-    height, width = img.shape[:2]
-    if baseline_y is not None:
-        cv2.line(img, (0, int(round(baseline_y))), (width - 1, int(round(baseline_y))), baseline_color, 1)
-
-    for x in range(width):
-        yy = int(round(trace_y[x]))
-        if 0 <= yy < height:
-            cv2.circle(img, (x, yy), 1, trace_color, -1)
-    
-    return img
-
 def show_trace(img, trace_y, x_offset=0, y_offset=0, baseline_y=None, baseline_color=(0, 255, 0), trace_color=(0, 0, 255)):
     img = img.copy()
     if len(img.shape) == 2: img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)

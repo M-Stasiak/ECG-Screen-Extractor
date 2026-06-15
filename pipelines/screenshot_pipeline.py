@@ -57,7 +57,6 @@ def process_image(img, ms_per_px, name=None):
 def main(input_dir, output_dir, reference_image_path):
 
     ms_per_px = get_ms_per_pixel(reference_image_path)
-    print(ms_per_px)
 
     image_files = sorted(p for p in input_dir.iterdir() if p.is_file() and p.suffix.lower() == ".jpg")
 
