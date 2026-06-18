@@ -263,13 +263,7 @@ time_ms,I,II,III,aVR,aVL,aVF,V1,V2,V3,V4,V5,V6
 
 Amplitude is represented as the signed vertical distance from the detected baseline:
 
-$$
-\mathrm{amplitude}_{\mathrm{px}}
-=
-y_{\mathrm{baseline}}
--
-y_{\mathrm{trace}}
-$$
+$$\mathrm{amplitude}_{\mathrm{px}} = y_{\mathrm{baseline}} - y_{\mathrm{trace}}$$
 
 Positive values represent upward deflection relative to the baseline, while negative values represent downward deflection.
 
