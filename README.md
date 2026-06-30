@@ -11,6 +11,7 @@ The application detects ECG channel bands and baselines, reconstructs each wavef
 
 The solution uses classical image-processing methods and does not rely on machine learning or neural networks.
 
+
 ## Requirements
 
 This project was developed and tested with `Python 3.14.3`.
